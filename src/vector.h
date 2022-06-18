@@ -11,7 +11,7 @@ private:
         int newSize = maxSize != 0 ? maxSize*2 : 1;
         Type* temp = new Type[newSize];
         for (int i=0; i<currSize; i++) {
-            temp[i] = arr[i];
+            temp[i] = std::move(arr[i]);
         }
 
         delete[] arr;
@@ -54,7 +54,7 @@ public:
         currSize = size;
     } 
 
-    MyVector(int size, Type var) : MyVector(size) {
+    MyVector(int size, const Type& var) : MyVector(size) {
         for (int i=0; i<size; i++) {
             arr[i] = var;
         }
@@ -87,7 +87,7 @@ public:
         return *this;
     }
 
-    bool operator==(const MyVector& oth) {
+    bool operator==(const MyVector& oth) const {
         if (currSize != oth.currSize) {
             return false;
         }
@@ -104,6 +104,10 @@ public:
         arr.push_back(el);
     }
 
+    void operator+=(Type&& el) {
+        arr.push_back(el);
+    }
+
     Type& operator[](int i) {
         return arr[i];
     }
@@ -117,6 +121,13 @@ public:
             expandVector();
         }
         arr[currSize++] = var;
+    }
+
+    void push_back(Type&& var) {
+        if (currSize == maxSize) {
+            expandVector();
+        }
+        arr[currSize++] = std::move(var);
     }
 
     Type& pop_back() {
@@ -152,7 +163,7 @@ public:
         currSize = n;
     }
 
-    bool empty() {
+    bool empty() const {
         return currSize == 0;
     }
 

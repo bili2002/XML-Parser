@@ -3,7 +3,7 @@
 MyString toMyString(const char str[]) {
     MyString temp;
     for (size_t i=0; i<strlen(str); i++) {
-        temp.push_back(i);
+        temp.push_back(str[i]);
     }
     return temp;
 }

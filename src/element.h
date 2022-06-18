@@ -3,32 +3,36 @@
 #include "pointer.h"
 
 class Element {
+    public:
+    //
     static MyPointer<Element> root;
 
-    MyString key;
+    MyString tag;
     MyString id;
     MyVector<Attribute> attributes;
     MyString text;
 
     MyVector<MyPointer<Element>> children;
-    MyPointer<Element> parent;
+    Element* parent;
 
     MyVector<Element*> operator/(const MyString& str);      //returns a list of all
-    bool operator==(const Attribute& atr);
+    bool operator==(const Attribute& attribute);
 
-    void printItself();
-    void printAttributes();
-    void printAll(int spac);
-    Element* findElementWithID(const MyString& id);
-    MyString& findAttributeWithKey(const MyString& attributeKey);
+    void print(std::ostream& os, int spacing) const;
+    void printChildren(std::ostream& os, int spacing) const;
+    void printAttributes(std::ostream& os) const;
+    Element* findElement(const MyString& id);
+    int findAttributeIndex(const MyString& attributeKey);
+
+    static Attribute* findAttribute(const MyString& id, const MyString& attributeKey);
 
 public:
-    static void print();
-    static void printAttributeValue(const MyString& id, const MyString& attributeKey);
+    static void print(std::ostream& os);
+    static void printAttributeValue(std::ostream& os, const MyString& id, const MyString& attributeKey);
     static void setAttributeValue(const MyString& id, const MyString& attributeKey, const MyString& attributeValue);
-    static void printChildren(const MyString& id);
-    static void printChild(const MyString& id, int n);
-    static void printText(const MyString& id);
+    static void printChildren(std::ostream& os, const MyString& id);
+    static void printChild(std::ostream& os, const MyString& id, int n);
+    static void printText(std::ostream& os, const MyString& id);
     static void deleteAttribute(const MyString& id, const MyString& attributeKey);
     static void addChild(const MyString& id);
     static void xpath(const MyString& id, MyString);
