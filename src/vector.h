@@ -101,11 +101,11 @@ public:
     }
 
     void operator+=(const Type& el) {
-        arr.push_back(el);
+        push_back(el);
     }
 
     void operator+=(Type&& el) {
-        arr.push_back(el);
+        push_back(el);
     }
 
     Type& operator[](int i) {
@@ -128,6 +128,12 @@ public:
             expandVector();
         }
         arr[currSize++] = std::move(var);
+    }
+
+    void append(const MyVector& oth) {
+        for (int i=0; i<oth.size(); i++) {
+            push_back(oth[i]);
+        }
     }
 
     Type& pop_back() {

@@ -28,6 +28,7 @@ int main() {
     el.tag = toMyString("person");
     el.id = toMyString("1");
     el.attributes.push_back(at);
+    el.text = toMyString("1");
 
     el2.children.push_back(new Element());
     Element& el3 = *el2.children[1];
@@ -36,7 +37,7 @@ int main() {
     el3.attributes.push_back(at2);
     el3.text = toMyString("Maria");
 
-    el2.print(cout, 0);
+    Element::xpath(std::cout, toMyString("person(name='ivan')(@name)"));
 
     return 0;
 }

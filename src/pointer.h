@@ -43,4 +43,12 @@ public:
         a.ptr = b.ptr;
         b.ptr = temp.ptr;
     }
+
+    Type& get() {
+        return *ptr;
+    }
+
+    Type* getPtr() {
+        return &get();
+    }
 };

@@ -1,7 +1,31 @@
 #include "element.h"
 #include "printing.h"
 
-MyPointer<Element> Element::root = new Element;
+MyPointer<Element> Element::root = new Element();
+
+Element::Element() {};
+Element::Element(const MyString& tag) : tag(tag) {};
+
+MyVector<Element*> Element::operator/(const MyString& tag)  {
+    MyVector<Element*> temp;
+    for (MyPointer<Element>& curr : children) {
+        if (curr->tag == tag) {
+            temp.push_back(curr.getPtr());
+        }
+    }
+
+    return temp;
+}
+
+bool Element::hasAttribute(const Attribute& attribute) {
+    for (Attribute& currAttribute : attributes) {
+        if (currAttribute == attribute) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 void Element::print(std::ostream& os, int spacing) const {
     Print::printSpaces(os, spacing);
@@ -102,4 +126,113 @@ void Element::deleteAttribute(const MyString& id, const MyString& attributeKey) 
     int attributeNumber = element->findAttributeIndex(attributeKey);
     
     element->attributes.erase(attributeNumber);
+}
+
+void Element::addChild(const MyString& id, const MyString& tag) {
+    root->findElement(id)->children.push_back(new Element(tag));
+}
+
+void Element::xpath(std::ostream& os, const MyString& path) {
+    MyVector<Element*> currentElements;
+
+    bool printed = false;
+
+    currentElements.push_back(root.getPtr());
+
+    for (int i=0; i<path.size(); ) {
+        if (path[i] == '/' || i == 0) {
+            if (path[i] == '/') {
+                i++;
+            }
+
+            MyString tag;
+            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+                tag += path[i++];
+            }
+
+            MyVector<Element*> temp;
+            for (Element* element : currentElements) {
+                temp.append(*element/tag);
+            }
+
+            std::swap(temp, currentElements);
+            continue;
+        }
+         
+        if (path[i] == '[') {
+            i++;
+            printed = true;
+
+            int num = 0;    
+            while (path[i] >= '0' && path[i] <= '9') {
+                num = num*10 + path[i++] - '0';
+            }
+
+            if (num > currentElements.size()) {
+                os<<"Error number is too big!\n";
+            } else {
+                os<<currentElements[num]->text<<'\n';
+            }
+            break;
+        }
+
+        if (path[i] == '(') {
+            i++;
+
+            if (path[i] == '@') {
+                i++;
+                printed = true;
+
+                MyString key;
+                while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+                    key += path[i++];
+                }
+
+                if (key == toMyString("id")) {
+                    for (Element* element : currentElements) {
+                        os<<element->id<<'\n';
+                    }
+                }
+
+                for (Element* element : currentElements) {
+                    int attributeNumber = element->findAttributeIndex(key);
+
+                    if (attributeNumber != -1) {
+                        os<<element->attributes[attributeNumber].value<<'\n';
+                    }
+                }
+
+                break;
+            }
+
+            Attribute attribute;
+            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+                attribute.key += path[i++];
+            }
+            i += 2;
+
+            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+                attribute.value += path[i++];
+            }
+            i += 2;
+
+            MyVector<Element*> temp;
+            for (Element* element : currentElements) {
+                if (element->hasAttribute(attribute)) {
+                    temp.push_back(element);
+                }
+            }
+
+            std::swap(temp, currentElements);
+            continue;
+        }
+
+        i++;
+    }
+
+    if (!printed) {
+        for (Element* element : currentElements) {
+            os<<element->text<<'\n';
+        }
+    }
 }
