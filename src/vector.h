@@ -3,14 +3,15 @@
 template <typename Type>
 class MyVector {
 private:
+protected:
     Type* arr = nullptr;
-    int maxSize = 0;
-    int currSize = 0;
+    size_t maxSize = 0;
+    size_t currSize = 0;
 
     void expandVector() {
         int newSize = maxSize != 0 ? maxSize*2 : 1;
         Type* temp = new Type[newSize];
-        for (int i=0; i<currSize; i++) {
+        for (size_t i=0; i<currSize; i++) {
             temp[i] = std::move(arr[i]);
         }
 
@@ -21,7 +22,7 @@ private:
 
     void shrinkVector() {
         Type* temp = new Type[maxSize/2];
-        for (int i=0; i<currSize; i++) {
+        for (size_t i=0; i<currSize; i++) {
             temp[i] = std::move(arr[i]);
         }
 
@@ -55,7 +56,7 @@ public:
     } 
 
     MyVector(int size, const Type& var) : MyVector(size) {
-        for (int i=0; i<size; i++) {
+        for (size_t i=0; i<size; i++) {
             arr[i] = var;
         }
     }
@@ -65,7 +66,7 @@ public:
         currSize = oth.currSize;
 
         arr = new Type[maxSize];
-        for (int i=0; i<currSize; i++) {
+        for (size_t i=0; i<currSize; i++) {
             arr[i] = oth.arr[i];
         }
     }
@@ -80,7 +81,7 @@ public:
 
         delete[] arr;
         arr = new Type[maxSize];
-        for (int i=0; i<currSize; i++) {
+        for (size_t i=0; i<currSize; i++) {
             arr[i] = oth.arr[i];
         }
 
@@ -92,22 +93,14 @@ public:
             return false;
         }
 
-        for (int i=0; i<currSize; i++) {
+        for (size_t i=0; i<currSize; i++) {
             if (arr[i] != oth.arr[i]) {
                 return false;
             }
         }
         return true;
     }
-
-    void operator+=(const Type& el) {
-        push_back(el);
-    }
-
-    void operator+=(Type&& el) {
-        push_back(el);
-    }
-
+    
     Type& operator[](int i) {
         return arr[i];
     }
@@ -131,7 +124,7 @@ public:
     }
 
     void append(const MyVector& oth) {
-        for (int i=0; i<oth.size(); i++) {
+        for (size_t i=0; i<oth.size(); i++) {
             push_back(oth[i]);
         }
     }
@@ -147,7 +140,7 @@ public:
     }
 
     void erase(int pos) {
-        for (int i=pos; i<currSize-1; i++) {
+        for (size_t i=pos; i<currSize-1; i++) {
             swap(arr[i], arr[i+1]);
         }
         pop_back();
@@ -159,7 +152,7 @@ public:
         }
     }
 
-    int size() const {
+    size_t size() const {
         return currSize;
     }
 

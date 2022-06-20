@@ -1,14 +1,8 @@
 #include "string.h"
 
-MyString toMyString(const char str[]) {
-    MyString temp;
-    for (size_t i=0; i<strlen(str); i++) {
-        temp.push_back(str[i]);
-    }
-    return temp;
-}
 
-std::istream& operator>>(std::istream& in, MyVector<char>& str) {
+std::istream& operator>>(std::istream& in, MyString& str) {
+    str.clear();
     char temp = ' ';
 
     while (isspace(temp) && in.good()) {
@@ -23,10 +17,11 @@ std::istream& operator>>(std::istream& in, MyVector<char>& str) {
     return in;
 }
 
-std::ostream& operator<<(std::ostream& out, const MyVector<char>& str) {
+std::ostream& operator<<(std::ostream& out, const MyString& str) {
     for (auto ch : str) {
         out<<ch;
     }
 
     return out;
 }
+

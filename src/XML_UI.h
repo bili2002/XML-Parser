@@ -5,19 +5,31 @@
 
 class XML_UI {
 private:
-    /* всички функции въвеждат данните а дадена заявка и я извикват след това */
+    MyString currFile;
 
-    void open();
-    void close();
-    void save();
-    void saveAs();
-    void help();
-    void exit(); 
+    void open();    //opens and read a file
+    void close();   //closes a file
+    void save();    //saves the xml file
+    void saveAs();  //save the xml file in a new file
+    void help();    //gives help
+    void exit();    //exits the program
 
-    void doCommand(int command); //извиква подходящата функцция за командата
-    int getCommand(); //взема команда
+    /* всички функции въвеждат данните за дадена заявка и я извикват след това */
+    void print();       //prints the xml file
+    void select();      //prints the value of an atribute
+    void set();         //changes the value of an atribute
+    void children();    //prints the children to an element
+    void child();       //prints a child to an element
+    void text();        //prints the text of an element
+    void delet();       //deletes a given attribute
+    void newChild();    //adds a child
+    void xpath();       //xpath
 
-    int getNumber(); 
+    void doCommand(int command);    //calls the function for the command
+    int getCommand();               //reads a command
+
+    int getNumber();                //reads a number
+    MyString getString();           //reads a string
 public:
-    void run(); 
+    void run();                     //runs the program
 };

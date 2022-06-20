@@ -7,5 +7,5 @@ void Print::printSpaces(std::ostream& os, int spacing) {
 }
 
 void Print::endTag(std::ostream& os, const MyString& key) {
-    os<<"<\\"<<key<<">\n";
+    os<<"</"<<key<<">\n";
 }

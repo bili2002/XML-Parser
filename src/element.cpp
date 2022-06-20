@@ -10,11 +10,23 @@ MyPointer<Element> Element::root = new Element();
 Element::Element() {};
 Element::Element(const MyString& tag) : tag(tag) {};
 
+void Element::destruct() {
+    if (children.empty()) {
+        Element::~Element();
+        return;
+    }
+
+    for (MyPointer<Element>& child : children) {
+        child->destruct();
+    }
+    Element::~Element();
+}
+
 MyVector<Element*> Element::operator/(const MyString& tag)  {
     MyVector<Element*> temp;
-    for (MyPointer<Element>& curr : children) {
-        if (curr->tag == tag) {
-            temp.push_back(curr.getPtr());
+    for (MyPointer<Element>& child : children) {
+        if (child->tag == tag) {
+            temp.push_back(child.getPtr());
         }
     }
 
@@ -33,7 +45,7 @@ bool Element::hasAttribute(const Attribute& attribute) {
 
 void Element::idCheck() {
     if (id.empty()) {
-        for (int i=0; i<3; i++) {
+        for (size_t i=0; i<3; i++) {
             id += rand() % 26 + 'a';
         }
     }
@@ -82,7 +94,7 @@ void Element::readOpeningTag(std::istream& is) {char temp;
     while (temp != '>') {
         is>>temp;
         if (temp == '>' || temp == '\"') {
-            if (attributes.back()->key == toMyString("id")) {
+            if (attributes.back()->key == MyString::toMyString("id")) {
                 setId(attributes.pop_back()->value);
             }
 
@@ -197,7 +209,7 @@ Element* Element::findElement(const MyString& id) {
 }
 
 int Element::findAttributeIndex(const MyString& attributeKey) {
-    for (int i=0; i<attributes.size(); i++) {
+    for (size_t i=0; i<attributes.size(); i++) {
         if (attributes[i]->key == attributeKey) {
             return i;
         }
@@ -208,6 +220,10 @@ int Element::findAttributeIndex(const MyString& attributeKey) {
 
 Attribute* Element::findAttribute(const MyString& id, const MyString& attributeKey) {
     Element* element = root->findElement(id);
+    if (element == nullptr) {
+        return nullptr;
+    }
+
     int attributeNumber = element->findAttributeIndex(attributeKey);
 
     if (attributeNumber < 0) {
@@ -215,6 +231,11 @@ Attribute* Element::findAttribute(const MyString& id, const MyString& attributeK
     }
 
     return element->attributes[attributeNumber].getPtr();
+}
+
+void Element::destructTree() {
+    root->destruct();
+    root = new Element();
 }
 
 void Element::input(std::istream& is) {
@@ -226,17 +247,35 @@ void Element::print(std::ostream& os) {
 }
 
 void Element::printAttributeValue(std::ostream& os, const MyString& id, const MyString& attributeKey) {
-    if (attributeKey == toMyString("id")) {
-        os<<root->findElement(id)->id<<std::endl;
+    if (attributeKey == MyString::toMyString("id")) {
+        Element* element = root->findElement(id);
+        if (element == nullptr) {
+            std::cerr<<"Error: There is no such element.\n";
+            return;
+        }
+
+        os<<element->id<<std::endl;
         return;
     }
 
-    os<<findAttribute(id, attributeKey)->value<<std::endl;
+    Attribute* attribute = findAttribute(id, attributeKey);
+    if (attribute == nullptr) {
+        std::cerr<<"Error: There is not attribute with this key.\n";
+        return;
+    }
+
+    os<<attribute->value<<std::endl;
 }
 
 void Element::setAttributeValue(const MyString& id, const MyString& attributeKey, const MyString& attributeValue) {    
-    if (attributeKey == toMyString("id")) {
-        root->findElement(id)->setId(attributeValue);
+    if (attributeKey == MyString::toMyString("id")) {
+        Element* element = root->findElement(id);
+        if (element == nullptr) {
+            std::cerr<<"Error: There is no such element.\n";
+            return;
+        }
+
+        element->setId(attributeValue);
         return;
     }
 
@@ -251,6 +290,11 @@ void Element::setAttributeValue(const MyString& id, const MyString& attributeKey
 
 void Element::printChildren(std::ostream& os, const MyString& id) {
     Element* element = root->findElement(id);
+    if (element == nullptr) {
+        std::cerr<<"Error: There is no such element.\n";
+        return;
+    }
+
     if (element->children.empty()) {
         std::cerr<<"Error: There are no children.\n";
         return;
@@ -260,8 +304,14 @@ void Element::printChildren(std::ostream& os, const MyString& id) {
 }
 
 void Element::printChild(std::ostream& os, const MyString& id, int n) {
-    MyVector<MyPointer<Element>>& children = root->findElement(id)->children;
-    if (children.size() <= n) {
+    Element* element = root->findElement(id);
+    if (element == nullptr) {
+        std::cerr<<"Error: There is no such element.\n";
+        return;
+    }
+
+    MyVector<MyPointer<Element>>& children = element->children;
+    if ((int)children.size() <= n) {
         std::cerr<<"Error: N is too big.\n";
         return;
     }
@@ -270,7 +320,13 @@ void Element::printChild(std::ostream& os, const MyString& id, int n) {
 }
 
 void Element::printText(std::ostream& os, const MyString& id) {
-    MyString& text = root->findElement(id)->text;
+    Element* element = root->findElement(id);
+    if (element == nullptr) {
+        std::cerr<<"Error: There is no such element.\n";
+        return;
+    }
+
+    MyString& text = element->text;
     if (text.empty()) {
         std::cerr<<"Error: There is no text.\n";
         return;
@@ -280,12 +336,16 @@ void Element::printText(std::ostream& os, const MyString& id) {
 }
 
 void Element::deleteAttribute(const MyString& id, const MyString& attributeKey) {
-    if (attributeKey == toMyString("id")) {
+    if (attributeKey == MyString::toMyString("id")) {
         std::cerr<<"Error: Can't delete ID.\n";
         return;
     }
 
     Element* element = root->findElement(id);
+    if (element == nullptr) {
+        std::cerr<<"Error: There is no such element.\n";
+        return;
+    }
     int attributeNumber = element->findAttributeIndex(attributeKey);
 
     if (attributeNumber < 0) {
@@ -297,7 +357,12 @@ void Element::deleteAttribute(const MyString& id, const MyString& attributeKey) 
 }
 
 void Element::addChild(const MyString& id, const MyString& tag) {
-    root->findElement(id)->children.push_back(new Element(tag));
+    Element* element = root->findElement(id);
+    if (element == nullptr) {
+        std::cerr<<"Error: There is no such element.\n";
+        return;
+    }
+    element->children.push_back(new Element(tag));
 }
 
 void Element::xpath(std::ostream& os, const MyString& path) {
@@ -306,7 +371,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
     bool printed = false;
     currentElements.push_back(root.getPtr());
 
-    for (int i=0; i<path.size(); ) {
+    for (size_t i=0; i<path.size(); ) {
         if (path[i] == '/' || i == 0) {
             if (path[i] == '/') {
                 i++;
@@ -335,7 +400,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
                 num = num*10 + path[i++] - '0';
             }
 
-            if (num > currentElements.size()) {
+            if (num >= (int)currentElements.size()) {
                 os<<"Error number is too big!\n";
             } else {
                 os<<currentElements[num]->text<<'\n';
@@ -355,7 +420,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
                     key += path[i++];
                 }
 
-                if (key == toMyString("id")) {
+                if (key == MyString::toMyString("id")) {
                     for (Element* element : currentElements) {
                         os<<element->id<<'\n';
                     }
@@ -396,7 +461,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
 
         i++;
     }
-
+    
     if (!printed) {
         for (Element* element : currentElements) {
             os<<element->text<<'\n';
