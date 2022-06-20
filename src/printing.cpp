@@ -1,7 +1,7 @@
 #include "printing.h"
 
 void Print::printSpaces(std::ostream& os, int spacing) {
-    for (int i=0; i<spacing; i++) {
+    for (int i=0; i<2*spacing; i++) {
         os<<' ';
     }
 }

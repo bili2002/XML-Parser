@@ -1,3 +1,7 @@
+#include <iostream>
+#include <stdlib.h>   
+#include <time.h>  
+
 #include "element.h"
 #include "printing.h"
 
@@ -18,13 +22,125 @@ MyVector<Element*> Element::operator/(const MyString& tag)  {
 }
 
 bool Element::hasAttribute(const Attribute& attribute) {
-    for (Attribute& currAttribute : attributes) {
-        if (currAttribute == attribute) {
+    for (MyPointer<Attribute>& currAttribute : attributes) {
+        if (currAttribute.get() == attribute) {
             return true;
         }
     }
 
     return false;
+}
+
+void Element::idCheck() {
+    if (id.empty()) {
+        for (int i=0; i<3; i++) {
+            id += rand() % 26 + 'a';
+        }
+    }
+
+    MyString temp = id;
+    id.clear();
+
+    Element* oth = findElement(temp);
+    id = temp;
+    if (oth != nullptr) {
+        oth->id += '_';
+        oth->id += '1';
+        oth->idCheck();
+
+        id += '_';
+        id += '2';
+        idCheck();
+    }
+}
+
+void Element::setId(const MyString& value) {
+    id = value;
+    idCheck();
+}
+
+void Element::readOpeningTag(std::istream& is) {char temp;
+    is>>temp;
+
+    if (temp != '<') {
+        std::cerr<<"Error\n";
+        return;
+    }
+
+    while (true) {
+        is.get(temp);
+        if (temp == '>' || temp == ' ') {
+            break;
+        }
+
+        tag += temp;
+    }
+
+    bool readingKey = true;
+    attributes.push_back(new Attribute);
+
+    while (temp != '>') {
+        is>>temp;
+        if (temp == '>' || temp == '\"') {
+            if (attributes.back()->key == toMyString("id")) {
+                setId(attributes.pop_back()->value);
+            }
+
+            if (temp == '>' ) {
+                break;
+            } else {
+                readingKey = true;
+                attributes.push_back(new Attribute);
+                continue;
+            }
+        }
+
+        if (temp == '=') {
+            readingKey = false;
+            is>>temp;  
+            continue;
+        }
+
+        if (readingKey) {
+            attributes.back()->key += temp;
+        } else {
+            attributes.back()->value += temp;
+        }
+    }
+
+    if (attributes.back()->key.empty()) {
+        attributes.pop_back();
+    }
+
+    idCheck();
+}
+
+void Element::readElement(std::istream& is) {
+    readOpeningTag(is);
+
+    while (true) {
+        char temp;
+        is>>temp;
+
+        if (temp == '<') {
+            is>>temp;
+            if (temp == '/') {
+                while (temp != '>') {
+                    is>>temp;
+                }
+                return;
+            }
+
+            is.seekg(-2, std::ios::cur);
+
+            children.push_back(new Element());
+            children.back()->parent = this;
+            children.back()->readElement(is);
+        } else {
+            text += temp;
+            continue;
+        }
+    }
 }
 
 void Element::print(std::ostream& os, int spacing) const {
@@ -60,8 +176,8 @@ void Element::printChildren(std::ostream& os, int spacing) const {
 } 
 
 void Element::printAttributes(std::ostream& os) const {
-    for (const Attribute& attribute : attributes) {
-        attribute.print(os);
+    for (const MyPointer<Attribute>& attribute : attributes) {
+        attribute->print(os);
     }
 }
 
@@ -82,7 +198,7 @@ Element* Element::findElement(const MyString& id) {
 
 int Element::findAttributeIndex(const MyString& attributeKey) {
     for (int i=0; i<attributes.size(); i++) {
-        if (attributes[i].key == attributeKey) {
+        if (attributes[i]->key == attributeKey) {
             return i;
         }
     }
@@ -94,7 +210,15 @@ Attribute* Element::findAttribute(const MyString& id, const MyString& attributeK
     Element* element = root->findElement(id);
     int attributeNumber = element->findAttributeIndex(attributeKey);
 
-    return &element->attributes[attributeNumber];
+    if (attributeNumber < 0) {
+        return nullptr;
+    }
+
+    return element->attributes[attributeNumber].getPtr();
+}
+
+void Element::input(std::istream& is) {
+    root->readElement(is);
 }
 
 void Element::print(std::ostream& os) {
@@ -102,28 +226,72 @@ void Element::print(std::ostream& os) {
 }
 
 void Element::printAttributeValue(std::ostream& os, const MyString& id, const MyString& attributeKey) {
+    if (attributeKey == toMyString("id")) {
+        os<<root->findElement(id)->id<<std::endl;
+        return;
+    }
+
     os<<findAttribute(id, attributeKey)->value<<std::endl;
 }
 
-void Element::setAttributeValue(const MyString& id, const MyString& attributeKey, const MyString& attributeValue) {
-    findAttribute(id, attributeKey)->value = attributeValue;
+void Element::setAttributeValue(const MyString& id, const MyString& attributeKey, const MyString& attributeValue) {    
+    if (attributeKey == toMyString("id")) {
+        root->findElement(id)->setId(attributeValue);
+        return;
+    }
+
+    Attribute* attribute = findAttribute(id, attributeKey);
+    if (attribute == nullptr) {
+        std::cerr<<"Error: There is not attribute with this key.\n";
+        return;
+    }
+
+    attribute->value = attributeValue;
 }   
 
 void Element::printChildren(std::ostream& os, const MyString& id) {
-    root->findElement(id)->printChildren(os, 0);
+    Element* element = root->findElement(id);
+    if (element->children.empty()) {
+        std::cerr<<"Error: There are no children.\n";
+        return;
+    }
+
+    element->printChildren(os, 0);
 }
 
 void Element::printChild(std::ostream& os, const MyString& id, int n) {
-    root->findElement(id)->children[n]->print(os, 0);
+    MyVector<MyPointer<Element>>& children = root->findElement(id)->children;
+    if (children.size() <= n) {
+        std::cerr<<"Error: N is too big.\n";
+        return;
+    }
+
+    children[n]->print(os, 0);
 }
 
 void Element::printText(std::ostream& os, const MyString& id) {
-    os<<root->findElement(id)->text<<std::endl;
+    MyString& text = root->findElement(id)->text;
+    if (text.empty()) {
+        std::cerr<<"Error: There is no text.\n";
+        return;
+    }
+
+    os<<text<<std::endl;
 }
 
 void Element::deleteAttribute(const MyString& id, const MyString& attributeKey) {
+    if (attributeKey == toMyString("id")) {
+        std::cerr<<"Error: Can't delete ID.\n";
+        return;
+    }
+
     Element* element = root->findElement(id);
     int attributeNumber = element->findAttributeIndex(attributeKey);
+
+    if (attributeNumber < 0) {
+        std::cerr<<"Error: No such attribute.\n";
+        return;
+    }
     
     element->attributes.erase(attributeNumber);
 }
@@ -136,7 +304,6 @@ void Element::xpath(std::ostream& os, const MyString& path) {
     MyVector<Element*> currentElements;
 
     bool printed = false;
-
     currentElements.push_back(root.getPtr());
 
     for (int i=0; i<path.size(); ) {
@@ -146,7 +313,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
             }
 
             MyString tag;
-            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+            while (i < path.size() && isLetter(path[i])) {
                 tag += path[i++];
             }
 
@@ -164,7 +331,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
             printed = true;
 
             int num = 0;    
-            while (path[i] >= '0' && path[i] <= '9') {
+            while (isNumber(path[i])) {
                 num = num*10 + path[i++] - '0';
             }
 
@@ -184,7 +351,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
                 printed = true;
 
                 MyString key;
-                while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+                while (i < path.size() && isLetter(path[i])) {
                     key += path[i++];
                 }
 
@@ -198,7 +365,7 @@ void Element::xpath(std::ostream& os, const MyString& path) {
                     int attributeNumber = element->findAttributeIndex(key);
 
                     if (attributeNumber != -1) {
-                        os<<element->attributes[attributeNumber].value<<'\n';
+                        os<<element->attributes[attributeNumber]->value<<'\n';
                     }
                 }
 
@@ -206,12 +373,12 @@ void Element::xpath(std::ostream& os, const MyString& path) {
             }
 
             Attribute attribute;
-            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+            while (i < path.size() && isLetter(path[i])) {
                 attribute.key += path[i++];
             }
             i += 2;
 
-            while (((path[i] >= 'a' && path[i] <= 'z') || (path[i] >= 'A' && path[i] <= 'Z')) && i < path.size()) {
+            while (i < path.size() && isLetter(path[i])) {
                 attribute.value += path[i++];
             }
             i += 2;
@@ -235,4 +402,12 @@ void Element::xpath(std::ostream& os, const MyString& path) {
             os<<element->text<<'\n';
         }
     }
+}
+
+bool Element::isLetter(char ch) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+bool Element::isNumber(char ch) {
+    return ch >= '0' && ch <= '9';
 }

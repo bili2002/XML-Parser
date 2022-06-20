@@ -22,7 +22,7 @@ private:
     void shrinkVector() {
         Type* temp = new Type[maxSize/2];
         for (int i=0; i<currSize; i++) {
-            temp[i] = arr[i];
+            temp[i] = std::move(arr[i]);
         }
 
         delete[] arr;
@@ -31,9 +31,9 @@ private:
     }
 
     static void swap(Type& left, Type& right) {
-        Type temp = left;
-        left = right;
-        right = temp;
+        Type temp = std::move(left);
+        left = std::move(right);
+        right = std::move(temp);
     }
 
 public:
@@ -153,6 +153,12 @@ public:
         pop_back();
     }
 
+    void clear() {
+        while (!empty()) {
+            pop_back();
+        }
+    }
+
     int size() const {
         return currSize;
     }
@@ -171,6 +177,10 @@ public:
 
     bool empty() const {
         return currSize == 0;
+    }
+
+    Type& back() {
+        return arr[currSize-1];
     }
 
     Type* begin() {
